@@ -8,17 +8,47 @@ import json # For pretty printing Pydantic schema
 # Add the src directory to the Python path to allow importing from src
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.prompts import (
-    RephrasedQuestionsPrompt,
-    AnswerWithRAGContextNamePrompt,
+try:
+    from src.prompts import (
+        RephrasedQuestionsPrompt,
+        AnswerWithRAGContextNamePrompt,
     AnswerWithRAGContextNumberPrompt,
     AnswerWithRAGContextBooleanPrompt,
     AnswerWithRAGContextNamesPrompt,
     ComparativeAnswerPrompt,
     RerankingPrompt,
-    RetrievalRankingSingleBlock,  # Pydantic model
-    RetrievalRankingMultipleBlocks # Pydantic model
-)
+        RetrievalRankingSingleBlock,  # Pydantic model
+        RetrievalRankingMultipleBlocks # Pydantic model
+    )
+    PROMPTS_AVAILABLE = True
+except ImportError as e:
+    print(f"Error importing from src.prompts: {e}")
+    print("Please ensure 'src/prompts.py' exists and all its dependencies (like 'pydantic') are installed.")
+    print("Prompt display will be skipped.")
+    PROMPTS_AVAILABLE = False
+    # Define placeholders if prompts are not available so the rest of the script doesn't crash
+    class PlaceholderPrompt:
+        instruction = "N/A (src.prompts not available)"
+        user_prompt = "N/A (src.prompts not available)"
+        pydantic_schema = "N/A (src.prompts not available)"
+        example = "N/A (src.prompts not available)"
+        system_prompt_rerank_single_block = "N/A (src.prompts not available)"
+        system_prompt_rerank_multiple_blocks = "N/A (src.prompts not available)"
+        pydantic_schema_single_block = "N/A (src.prompts not available)"
+        pydantic_schema_multiple_blocks = "N/A (src.prompts not available)"
+        example_single_block = "N/A (src.prompts not available)"
+        example_multiple_blocks = "N/A (src.prompts not available)"
+
+    RephrasedQuestionsPrompt = PlaceholderPrompt()
+    AnswerWithRAGContextNamePrompt = PlaceholderPrompt()
+    AnswerWithRAGContextNumberPrompt = PlaceholderPrompt()
+    AnswerWithRAGContextBooleanPrompt = PlaceholderPrompt()
+    AnswerWithRAGContextNamesPrompt = PlaceholderPrompt()
+    ComparativeAnswerPrompt = PlaceholderPrompt()
+    RerankingPrompt = PlaceholderPrompt()
+    RetrievalRankingSingleBlock = None # For inspect.getsource part
+    RetrievalRankingMultipleBlocks = None # For inspect.getsource part
+
 
 def get_attribute_safely(prompt_obj, attr_name):
     """Safely gets an attribute from a prompt object, returning a default string if not found."""
@@ -32,6 +62,11 @@ def main():
     """
     print("--- Understanding RAG Prompts from src/prompts.py ---")
     print("This script displays the structure and purpose of various prompts used in the RAG pipeline.\n")
+
+    if not PROMPTS_AVAILABLE:
+        print("Cannot display prompt information because 'src.prompts' or its dependencies could not be loaded.")
+        print("\nPrompt exploration complete (due to import errors).")
+        return
 
     # --- 1. RephrasedQuestionsPrompt ---
     print("\n--- 1. RephrasedQuestionsPrompt ---")
@@ -121,32 +156,38 @@ def main():
     print("\n--- 8. RetrievalRankingSingleBlock (Pydantic Model) ---")
     print(f"  Purpose: Defines the expected JSON output structure when an LLM reranks a single retrieved text block. "
           f"It includes fields for relevance, confidence, and reasoning.")
-    try:
-        # Print the source code of the Pydantic model
-        schema_source = inspect.getsource(RetrievalRankingSingleBlock)
-        print(f"  Pydantic Model Source Code:\n{schema_source}")
-        # Alternatively, print the JSON schema:
-        # print(f"  Pydantic Model JSON Schema:\n{json.dumps(RetrievalRankingSingleBlock.model_json_schema(), indent=2)}")
-    except TypeError:
-        print("  Could not retrieve source code for RetrievalRankingSingleBlock (likely not a class/module).")
-    except Exception as e:
-        print(f"  Error retrieving schema for RetrievalRankingSingleBlock: {e}")
+    if RetrievalRankingSingleBlock:
+        try:
+            # Print the source code of the Pydantic model
+            schema_source = inspect.getsource(RetrievalRankingSingleBlock)
+            print(f"  Pydantic Model Source Code:\n{schema_source}")
+            # Alternatively, print the JSON schema:
+            # print(f"  Pydantic Model JSON Schema:\n{json.dumps(RetrievalRankingSingleBlock.model_json_schema(), indent=2)}")
+        except TypeError:
+            print("  Could not retrieve source code for RetrievalRankingSingleBlock (likely not a class/module or Pydantic not fully available).")
+        except Exception as e:
+            print(f"  Error retrieving schema for RetrievalRankingSingleBlock: {e}")
+    else:
+        print("  RetrievalRankingSingleBlock not available (src.prompts or Pydantic likely missing).")
     print("-" * 50)
 
     # --- 9. RetrievalRankingMultipleBlocks (Pydantic Model) ---
     print("\n--- 9. RetrievalRankingMultipleBlocks (Pydantic Model) ---")
     print(f"  Purpose: Defines the expected JSON output structure when an LLM reranks multiple retrieved text blocks. "
           f"It typically contains a list of objects, each conforming to a structure similar to RetrievalRankingSingleBlock.")
-    try:
-        # Print the source code of the Pydantic model
-        schema_source = inspect.getsource(RetrievalRankingMultipleBlocks)
-        print(f"  Pydantic Model Source Code:\n{schema_source}")
-        # Alternatively, print the JSON schema:
-        # print(f"  Pydantic Model JSON Schema:\n{json.dumps(RetrievalRankingMultipleBlocks.model_json_schema(), indent=2)}")
-    except TypeError:
-        print("  Could not retrieve source code for RetrievalRankingMultipleBlocks (likely not a class/module).")
-    except Exception as e:
-        print(f"  Error retrieving schema for RetrievalRankingMultipleBlocks: {e}")
+    if RetrievalRankingMultipleBlocks:
+        try:
+            # Print the source code of the Pydantic model
+            schema_source = inspect.getsource(RetrievalRankingMultipleBlocks)
+            print(f"  Pydantic Model Source Code:\n{schema_source}")
+            # Alternatively, print the JSON schema:
+            # print(f"  Pydantic Model JSON Schema:\n{json.dumps(RetrievalRankingMultipleBlocks.model_json_schema(), indent=2)}")
+        except TypeError:
+            print("  Could not retrieve source code for RetrievalRankingMultipleBlocks (likely not a class/module or Pydantic not fully available).")
+        except Exception as e:
+            print(f"  Error retrieving schema for RetrievalRankingMultipleBlocks: {e}")
+    else:
+        print("  RetrievalRankingMultipleBlocks not available (src.prompts or Pydantic likely missing).")
     print("-" * 50)
 
     print("\nPrompt exploration complete.")

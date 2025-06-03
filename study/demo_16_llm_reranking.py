@@ -8,7 +8,16 @@ from dotenv import load_dotenv
 # Add the src directory to the Python path to allow importing from src
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.reranking import LLMReranker
+try:
+    from src.reranking import LLMReranker
+    RERANKER_AVAILABLE = True
+except ImportError as e:
+    LLMReranker = None # Placeholder
+    RERANKER_AVAILABLE = False
+    print(f"Error importing LLMReranker from src.reranking: {e}")
+    print("Please ensure 'src/reranking.py' exists and all its dependencies")
+    print("(e.g., src.api_requests, src.prompts, openai, pydantic) are installed.")
+    print("LLM reranking demo will be significantly limited.")
 
 # Load environment variables from .env file (especially OPENAI_API_KEY)
 load_dotenv()
@@ -33,6 +42,11 @@ def main():
     against a sample query.
     """
     print("Starting LLM-based reranking demo...")
+
+    if not RERANKER_AVAILABLE:
+        print("\nLLMReranker could not be imported. Cannot proceed with the reranking demonstration.")
+        print("LLM-based reranking demo complete (due to import error).")
+        return
 
     # --- 1. Prepare Sample Data ---
     sample_query = "Tell me about the company's sustainability efforts and impact on local communities."

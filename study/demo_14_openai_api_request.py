@@ -9,7 +9,15 @@ from dotenv import load_dotenv
 # Add the src directory to the Python path to allow importing from src
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.api_requests import APIProcessor
+try:
+    from src.api_requests import APIProcessor
+    API_PROCESSOR_AVAILABLE = True
+except ImportError as e:
+    APIProcessor = None # Placeholder
+    API_PROCESSOR_AVAILABLE = False
+    print(f"Error importing APIProcessor from src.api_requests: {e}")
+    print("Please ensure 'src/api_requests.py' exists and all its dependencies (like 'openai') are installed.")
+    print("OpenAI API request demo will be significantly limited.")
 
 # Load environment variables from .env file (especially OPENAI_API_KEY)
 load_dotenv()
@@ -31,6 +39,11 @@ def main():
     with a sample question and RAG context.
     """
     print("Starting OpenAI API request demo...")
+
+    if not API_PROCESSOR_AVAILABLE:
+        print("\nAPIProcessor could not be imported. Cannot proceed with the API request demonstration.")
+        print("OpenAI API request demo complete (due to import error).")
+        return
 
     # --- 1. Check for API Key ---
     openai_api_key = os.getenv("OPENAI_API_KEY")

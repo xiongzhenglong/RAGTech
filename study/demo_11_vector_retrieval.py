@@ -4,9 +4,19 @@ import json
 import os
 from pathlib import Path
 import sys
-import faiss
+try:
+    import faiss
+except ImportError:
+    faiss = None # Placeholder if faiss is not installed
+    print("Warning: FAISS library not found. FAISS-dependent operations will be skipped.")
 import numpy as np
-from openai import OpenAI # For generating query embeddings
+try:
+    from openai import OpenAI # For generating query embeddings
+    openai_available = True
+except ImportError:
+    OpenAI = None # Placeholder
+    openai_available = False
+    print("Warning: OpenAI library not found. OpenAI-dependent operations will be skipped.")
 from dotenv import load_dotenv # For loading OPENAI_API_KEY from .env
 
 # Load environment variables from .env file (especially OPENAI_API_KEY)
@@ -68,14 +78,34 @@ def main():
         return
 
     try:
-        faiss_index = faiss.read_index(str(faiss_index_path))
-        print(f"Successfully loaded FAISS index. Index contains {faiss_index.ntotal} vectors.")
-        if faiss_index.ntotal != len(chunks):
-            print(f"Warning: Number of vectors in FAISS index ({faiss_index.ntotal}) "
-                  f"does not match number of chunks in JSON ({len(chunks)}). "
-                  "This might lead to incorrect retrieval mapping.")
+        # This line will only be reached if faiss was imported successfully.
+        # If faiss is None, the 'faiss' variable holds None, not the module.
+        # So, we need to check 'if faiss:' before calling faiss.read_index
+        if faiss:
+            faiss_index = faiss.read_index(str(faiss_index_path))
+            print(f"Successfully loaded FAISS index. Index contains {faiss_index.ntotal} vectors.")
+            if faiss_index.ntotal != len(chunks):
+                print(f"Warning: Number of vectors in FAISS index ({faiss_index.ntotal}) "
+                      f"does not match number of chunks in JSON ({len(chunks)}). "
+                      "This might lead to incorrect retrieval mapping.")
+        else:
+            # This case should ideally be caught by the 'if faiss is None:' check below,
+            # but as a safeguard if faiss.read_index were called when faiss is None.
+            print("FAISS library not available, cannot load FAISS index.")
+            return
+
     except Exception as e:
+        # This will catch errors from faiss.read_index if faiss was imported
         print(f"Error loading FAISS index: {e}")
+        return
+
+    if faiss is None: # This is the primary check for FAISS availability
+        print("FAISS library not available, skipping retrieval demonstration.")
+        # No need to return here if we want the script to print the final "demo complete" message
+        # However, the rest of the retrieval logic depends on faiss_index.
+        # So, for clarity and to prevent further operations, returning is fine.
+        print("----------------------------------------------------")
+        print("\nVector retrieval demo complete (FAISS part skipped).")
         return
 
     # --- 3. Understanding Vector Retrieval ---
@@ -98,13 +128,23 @@ def main():
     sample_query = "What were the total revenues?"
     print(f"\n--- Performing Vector Retrieval for Query: \"{sample_query}\" ---")
 
+    if not openai_available:
+        print("OpenAI library not available, skipping query embedding and retrieval.")
+        print("----------------------------------------------------")
+        print("\nVector retrieval demo complete (OpenAI part skipped).")
+        return
+
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
         print("Error: OPENAI_API_KEY environment variable not set.")
         print("Query embedding generation requires an OpenAI API key.")
+        print("----------------------------------------------------")
+        print("\nVector retrieval demo complete (OpenAI key missing).")
         return
 
     try:
+        if not OpenAI: # Should be redundant due to openai_available but good for safety
+            raise ImportError("OpenAI client cannot be initialized because library was not imported.")
         llm = OpenAI(api_key=openai_api_key, timeout=20.0, max_retries=2) # Standard client
         print("OpenAI client initialized.")
 
@@ -132,6 +172,14 @@ def main():
         # Search the FAISS index
         top_k = 5 # Number of top results to retrieve
         print(f"Searching FAISS index for top {top_k} similar chunks...")
+        # Ensure faiss_index is defined and is a FAISS index object
+        if 'faiss_index' not in locals() or faiss_index is None :
+             print("FAISS index is not available for searching. Exiting retrieval.")
+             # Add the same exit message structure as other skipped parts
+             print("----------------------------------------------------")
+             print("\nVector retrieval demo complete (FAISS index not available for search).")
+             return
+
         distances, indices = faiss_index.search(query_embedding_np, top_k)
         
         print("\n--- Retrieval Results ---")

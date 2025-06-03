@@ -5,12 +5,26 @@ import os
 import json
 from pathlib import Path # Not strictly used but good practice for path handling
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field
+
+try:
+    from pydantic import BaseModel, Field
+    PYDANTIC_AVAILABLE = True
+except ImportError:
+    BaseModel = object  # Placeholder to prevent syntax errors
+    Field = lambda **kwargs: None  # Placeholder
+    PYDANTIC_AVAILABLE = False
+    print("Warning: Pydantic library not found. This demo will be significantly limited.")
 
 # Add the src directory to the Python path to allow importing from src
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from src.api_requests import APIProcessor
+try:
+    from src.api_requests import APIProcessor
+    API_PROCESSOR_AVAILABLE = True
+except ImportError as e:
+    APIProcessor = None # Placeholder
+    API_PROCESSOR_AVAILABLE = False
+    print(f"Warning: APIProcessor import failed: {e}. This demo will be significantly limited.")
 
 # Load environment variables from .env file (especially OPENAI_API_KEY)
 load_dotenv()
@@ -29,10 +43,13 @@ load_dotenv()
 # (e.g., "gpt-4o-mini", "gpt-4-turbo" support JSON mode well).
 
 # --- 1. Define Pydantic Model for Structured Output ---
-class SimpleResponse(BaseModel):
-    answer: str = Field(description="The direct answer to the question.")
-    confidence_score: float = Field(description="A score from 0.0 to 1.0 indicating confidence.")
-    related_topics: list[str] = Field(description="A list of related topics.")
+if PYDANTIC_AVAILABLE:
+    class SimpleResponse(BaseModel):
+        answer: str = Field(description="The direct answer to the question.")
+        confidence_score: float = Field(description="A score from 0.0 to 1.0 indicating confidence.")
+        related_topics: list[str] = Field(description="A list of related topics.")
+else:
+    SimpleResponse = None # Crucial for checks later in main()
 
 def main():
     """
@@ -40,6 +57,18 @@ def main():
     a structured JSON response parsed according to a Pydantic model.
     """
     print("Starting structured output (JSON with Pydantic) demo...")
+
+    if not PYDANTIC_AVAILABLE or SimpleResponse is None:
+        print("Pydantic is not available or SimpleResponse model could not be defined.")
+        print("Cannot proceed with the structured output demonstration.")
+        print("Structured output demo complete (due to missing Pydantic).")
+        return
+
+    if not API_PROCESSOR_AVAILABLE or APIProcessor is None:
+        print("APIProcessor is not available (from src.api_requests).")
+        print("Cannot proceed with the API request part of the demonstration.")
+        print("Structured output demo complete (due to missing APIProcessor).")
+        return
 
     # --- 2. Check for API Key ---
     openai_api_key = os.getenv("OPENAI_API_KEY")
@@ -73,7 +102,9 @@ def main():
     print("\n--- Request Details ---")
     print(f"  Question: \"{question}\"")
     print(f"  System Content Hint (schema is also sent by APIProcessor):\n    \"{system_content}\"")
-    print(f"  Expected Pydantic Schema: {SimpleResponse.__name__}")
+    # Accessing __name__ only if SimpleResponse is a class
+    expected_schema_name = SimpleResponse.__name__ if SimpleResponse else "N/A (Pydantic not available)"
+    print(f"  Expected Pydantic Schema: {expected_schema_name}")
 
     # --- 5. Send Request to LLM for Structured Output ---
     llm_model_name = "gpt-4o-mini" # Or "gpt-4-turbo", "gpt-3.5-turbo" (check model's JSON mode support)

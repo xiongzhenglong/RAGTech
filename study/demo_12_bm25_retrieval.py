@@ -75,7 +75,7 @@ def main():
             print("Ensure it's a valid BM25 model (e.g., from rank_bm25 library).")
             return
     except Exception as e:
-        print(f"Error loading BM25 index: {e}")
+        print(f"Error loading BM25 index: {e}") # This will catch ModuleNotFoundError if rank_bm25 is missing
         return
 
     # --- 3. Understanding BM25 Retrieval ---
