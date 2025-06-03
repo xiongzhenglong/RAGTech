@@ -1,4 +1,14 @@
 # study/demo_01_pdf_parsing.py
+#
+# NOTE: This script has significant external dependencies:
+# 1. Docling models: Requires downloading specific models via `Pipeline.download_docling_models()`.
+#    These models are necessary for the core parsing functionality.
+# 2. Detectron2: The `LayoutDetector` component (and thus `DocumentParser`)
+#    depends on Detectron2, which can be complex to install and may have GPU requirements.
+# 3. Standard Python libraries: pdfminer.six, PyMuPDF (fitz), Pillow.
+#
+# Running this script successfully requires a pre-configured environment
+# where these dependencies are met.
 
 import sys
 import os
@@ -36,6 +46,8 @@ def main():
     # For this demo, we'll focus on text extraction and basic structure.
     # More advanced components like EntityRecognizer might require specific model setups.
     text_extractor = TextExtractor()
+    # NOTE: LayoutDetector depends on Detectron2 and associated models.
+    # Installation of Detectron2 can be non-trivial.
     layout_detector = LayoutDetector() # Depends on Detectron2 and models
     # StructureDetector and EntityRecognizer might be more complex to set up for a simple demo
     # For now, let's try to use DocumentParser which encapsulates some of this.

@@ -1,4 +1,16 @@
 # study/demo_04_serializing_tables.py
+#
+# NOTE: This script demonstrates table serialization using `TableSerializer`
+# from `src.tables_serialization`. This process involves using an
+# LLM (Language Model, e.g., OpenAI's GPT) to enrich table data.
+#
+# Key Requirements for this script to run successfully:
+# 1. Input JSON: An output file from `demo_01_pdf_parsing.py` (e.g.,
+#    "194000c9109c6fa628f1fed33b44ae4c2b8365f4.json") must be present
+#    in the "study/parsed_output/" directory.
+# 2. OpenAI API Key: The `OPENAI_API_KEY` environment variable must be set.
+#    The `TableSerializer` uses this key to make calls to the OpenAI API.
+# 3. Network Access: Internet connectivity is required for the LLM calls.
 
 import json
 import os
